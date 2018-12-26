@@ -1,0 +1,75 @@
+<html>
+  <head>
+    <script type = "text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.bundle.min.js"></script>
+    <script type = "text/javascript">
+
+function draw_linechart(title, element_id, labels, data) {
+  var ctx = document.getElementById(element_id).getContext('2d')
+
+  var config = {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: title,
+        data: data
+      }]
+    },
+  }
+
+  var chart = new Chart(ctx, config)
+}
+
+function find_values(xpath_query, doc) {
+        var query = doc.evaluate(
+        xpath_query,
+    doc,
+    doc.createNSResolver(doc),
+    XPathResult.ANY_TYPE,
+    null)
+
+  var results = []
+  var e = query.iterateNext()
+  while (e) {
+        results.push(e.nodeValue)
+    e = query.iterateNext()
+  }
+  return results
+}
+
+
+function process_weather(doc) {
+
+  // temperature
+        var t_times  = find_values("//wml2:MeasurementTimeseries[@gml:id='obs-obs-1-1-t2m']/.//wml2:time/text()", doc)
+        var t_values = find_values("//wml2:MeasurementTimeseries[@gml:id='obs-obs-1-1-t2m']/.//wml2:value/text()", doc)
+
+        draw_linechart("Air temperature", "temperature", t_times, t_values)
+
+
+  // humidity
+        var h_times  = find_values("//wml2:MeasurementTimeseries[@gml:id='obs-obs-1-1-rh']/.//wml2:time/text()", doc)
+        var h_values = find_values("//wml2:MeasurementTimeseries[@gml:id='obs-obs-1-1-rh']/.//wml2:value/text()", doc)
+        draw_linechart("Relative humidity", "humidity", h_times, h_values)
+
+
+}
+
+fetch("https://opendata.fmi.fi/wfs?request=getFeature&storedquery_id=fmi%3A%3Aobservations%3A%3Aweather%3A%3Atimevaluepair&crs=EPSG%3A%3A3067&fmisid=100949")
+  .then((response) => response.text())
+  .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"))
+  .then(doc => {
+    process_weather(doc)
+  })
+
+    </script>
+  </head>
+  <body>
+
+    <h1>Weather</h1>
+
+    <canvas id="temperature" width="400" height="200"></canvas>
+    <canvas id="humidity" width="400" height="200"></canvas>
+
+  </body>
+</html>
